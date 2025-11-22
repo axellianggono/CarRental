@@ -13,6 +13,10 @@ function generateToken() {
 function saveUserToken($userId, $token) {
     global $conn;
 
+    $stmt = $conn->prepare("DELETE FROM token WHERE user_id = ?");
+    $stmt->bind_param("i", $userId);
+    $stmt->execute();
+
     $stmt = $conn->prepare("INSERT INTO token (user_id, token) VALUES (?, ?)");
     $stmt->bind_param("is", $userId, $token);
     return $stmt->execute();

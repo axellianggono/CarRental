@@ -32,6 +32,8 @@ function getUser($token) {
 
     $user = $result->fetch_assoc();
 
+    $user['profile_photo'] = $env['BASE_URL'] . '/api/storage/images/' . ($user['profile_photo'] ?: 'default.jpg');
+
     return [
         'status' => true,
         'user' => $user

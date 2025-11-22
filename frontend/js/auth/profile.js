@@ -2,6 +2,7 @@ const username = document.getElementById('username');
 const email = document.getElementById('email');
 const date = document.getElementById('date');
 const profilePhoto = document.getElementById('profile-photo');
+const logoutButton = document.getElementById('logout-button');
 
 async function fetchProfile() {
     const authToken = localStorage.getItem('auth_token');
@@ -16,7 +17,7 @@ async function fetchProfile() {
         username.textContent = result.data.username;
         email.textContent = 'Email: ' + result.data.email;
         date.textContent = 'Date Join: ' + new Date(result.data.created_at).toLocaleDateString();
-        profilePhoto.src = '../../api/storage/images/' + result.data.profile_photo;
+        profilePhoto.src = result.data.profile_photo;
     } else {
         alert('Failed to fetch profile: ' + result.message);
         if (response.status === 401) {
@@ -25,6 +26,21 @@ async function fetchProfile() {
     }
 }
 
+async function logout() {
+    localStorage.removeItem('auth_token');
+
+    await fetch('../../api/auth/logout.php', {
+        method: 'POST'
+    });
+
+    window.location.href = 'login.html';
+}
+
 window.addEventListener('load', async () => {
     await fetchProfile();
+});
+
+logoutButton.addEventListener('click', async (e) => {
+    e.preventDefault();
+    await logout();
 });
