@@ -1,0 +1,93 @@
+CREATE DATABASE IF NOT EXISTS `car_rental`;
+USE `car_rental`;
+
+CREATE TABLE IF NOT EXISTS `user` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `username` varchar(100) NOT NULL,
+  `email` varchar(100) NOT NULL,
+  `password` varchar(255) NOT NULL,
+  `profile_photo` varchar(255) NOT NULL DEFAULT 'default.jpg',
+  `role` enum('guest','superadmin','admin') NOT NULL DEFAULT 'guest',
+  `verify_token` varchar(100) NOT NULL,
+  `verification_code` varchar(4) NOT NULL DEFAULT '0',
+  `verified` tinyint NOT NULL DEFAULT '0',
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` datetime DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `email` (`email`),
+  KEY `idx_user_email` (`email`)
+);
+
+CREATE TABLE IF NOT EXISTS `vehicle` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `name` varchar(255) NOT NULL,
+  `description` text,
+  `price` decimal(10,2) NOT NULL DEFAULT '0.00',
+  `stock` smallint NOT NULL DEFAULT '0',
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` datetime DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_vehicle_name` (`name`)
+);
+
+CREATE TABLE IF NOT EXISTS `order` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `user_id` int NOT NULL,
+  `order_number` varchar(50) NOT NULL,
+  `total_price` decimal(12,2) NOT NULL DEFAULT '0.00',
+  `status` enum('pending','confirmed','processing','completed','cancelled') NOT NULL DEFAULT 'pending',
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` datetime DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+  `cancelled_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `order_number` (`order_number`),
+  KEY `idx_order_user` (`user_id`),
+  KEY `idx_order_number` (`order_number`),
+  KEY `idx_order_status` (`status`),
+  CONSTRAINT `order_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS `order_item` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `order_id` int NOT NULL,
+  `vehicle_id` int NOT NULL,
+  `quantity` int NOT NULL DEFAULT '1',
+  `unit_price` decimal(10,2) NOT NULL,
+  `sub_total` decimal(12,2) NOT NULL,
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_order_item` (`order_id`,`vehicle_id`),
+  KEY `idx_order_item_order` (`order_id`),
+  KEY `idx_order_item_vehicle` (`vehicle_id`),
+  CONSTRAINT `order_item_ibfk_1` FOREIGN KEY (`order_id`) REFERENCES `order` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `order_item_ibfk_2` FOREIGN KEY (`vehicle_id`) REFERENCES `vehicle` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS `payment` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `order_id` int NOT NULL,
+  `payment_method` varchar(50) NOT NULL DEFAULT 'transfer',
+  `amount` decimal(12,2) NOT NULL,
+  `status` enum('pending','paid','failed','cancelled','refunded') NOT NULL DEFAULT 'pending',
+  `payment_date` datetime DEFAULT NULL,
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` datetime DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+  `reference_number` varchar(100) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_payment_order` (`order_id`),
+  KEY `idx_payment_status` (`status`),
+  KEY `idx_payment_reference` (`reference_number`),
+  CONSTRAINT `payment_ibfk_1` FOREIGN KEY (`order_id`) REFERENCES `order` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS `token` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `user_id` int NOT NULL,
+  `token` varchar(255) NOT NULL,
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` datetime DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_token_user` (`user_id`),
+  KEY `idx_token_value` (`token`),
+  CONSTRAINT `token_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+);
