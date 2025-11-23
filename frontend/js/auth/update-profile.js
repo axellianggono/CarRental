@@ -3,6 +3,7 @@ const profilePhotoInput = document.getElementById("profile_photo");
 const username = document.getElementById("username");
 const email = document.getElementById("email");
 const updateButton = document.getElementById("update-button");
+const deleteButton = document.getElementById("delete-button");
 
 async function fetchProfile() {
   const authToken = localStorage.getItem("auth_token");
@@ -25,10 +26,6 @@ async function fetchProfile() {
     }
   }
 }
-
-window.addEventListener("load", async () => {
-  await fetchProfile();
-});
 
 profilePhotoInput.addEventListener("change", async (e) => {
   e.preventDefault();
@@ -86,7 +83,36 @@ async function updateProfile() {
   }
 }
 
+async function deleteAccount() {
+  const authToken = localStorage.getItem("auth_token");
+  const response = await fetch("../../api/auth/delete.php", {
+    method: "DELETE",
+    headers: {
+      Authorization: "Bearer " + authToken,
+    },
+  });
+  const result = await response.json();
+  if (response.ok) {
+    alert(result.message);
+    localStorage.removeItem("auth_token");
+    window.location.href = "register.html";
+  } else {
+    alert("Account deletion failed: " + result.message);
+  }
+}
+
+window.addEventListener("load", async () => {
+  await fetchProfile();
+});
+
 updateButton.addEventListener("click", async (e) => {
   e.preventDefault();
   await updateProfile();
+});
+
+deleteButton.addEventListener("click", async (e) => {
+  e.preventDefault();
+  if (confirm("Are you sure you want to delete your account? This action cannot be undone.")) {
+    await deleteAccount();
+  }
 });
