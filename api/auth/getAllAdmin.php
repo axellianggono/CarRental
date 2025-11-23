@@ -4,23 +4,16 @@ require __DIR__ . '/../database.php';
 require __DIR__ . '/../config.php';
 require __DIR__ . '/../../vendor/autoload.php';
 
-// Gunakan UTC untuk keseragaman waktu (match dengan MySQL)
-date_default_timezone_set('UTC');
-
-function getUser($token) {
+function getAllAdmins($token) {
     global $conn, $env;
 
-    if (empty($token)) {
-        return ['status' => false, 'message' => 'Token tidak disediakan.'];
-    }
-
+    // Validate token and get user role
     $stmt = $conn->prepare("
-        SELECT u.id, u.username, u.email, u.profile_photo, u.role, t.created_at 
+        SELECT u.role 
         FROM user u
         JOIN token t ON u.id = t.user_id
         WHERE t.token = ?
     ");
-
     $stmt->bind_param("s", $token);
     $stmt->execute();
     $result = $stmt->get_result();
@@ -31,15 +24,30 @@ function getUser($token) {
     }
 
     $user = $result->fetch_assoc();
+    if ($user['role'] !== 'superadmin') {
+        return ['status' => false, 'message' => 'Akses ditolak.'];
+    }
 
-    $user['profile_photo'] = $env['BASE_URL'] . '/api/storage/images/' . ($user['profile_photo'] ?: 'default.jpg');
+    // Fetch all admin users
+    $stmt = $conn->prepare("
+        SELECT id, username, email, profile_photo, role, created_at 
+        FROM user 
+        WHERE role = 'admin'
+    ");
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $admins = [];
+    while ($admin = $result->fetch_assoc()) {
+        $admin['profile_photo'] = $env['BASE_URL'] . '/api/storage/images/' . ($admin['profile_photo'] ?: 'default.jpg');
+        $admins[] = $admin;
+    }
+    $stmt->close();
 
     return [
         'status' => true,
-        'user' => $user
+        'admins' => $admins
     ];
 }
-
 
 switch ($_SERVER['REQUEST_METHOD']) {
 
@@ -54,17 +62,16 @@ switch ($_SERVER['REQUEST_METHOD']) {
         }
 
         $token = $matches[1];
-        $userResult = getUser($token);
+        $adminResult = getAllAdmins($token);
 
-        if ($userResult['status']) {
+        if ($adminResult['status']) {
             http_response_code(200);
-            echo json_encode(['data' => $userResult['user']]);
+            echo json_encode(['data' => $adminResult['admins']]);
         } else {
-            http_response_code(401);
-            echo json_encode(['message' => $userResult['message']]);
+            http_response_code(403);
+            echo json_encode(['message' => $adminResult['message']]);
         }
         break;
-
 
     default:
         http_response_code(405);

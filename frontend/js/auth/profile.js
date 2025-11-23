@@ -1,8 +1,10 @@
 const username = document.getElementById('username');
 const email = document.getElementById('email');
 const date = document.getElementById('date');
+const role = document.getElementById('role');
 const profilePhoto = document.getElementById('profile-photo');
 const logoutButton = document.getElementById('logout-button');
+const navItems = document.getElementById('nav-items');
 
 async function fetchProfile() {
     const authToken = localStorage.getItem('auth_token');
@@ -15,6 +17,13 @@ async function fetchProfile() {
     const result = await response.json();
     if (response.ok) {
         username.textContent = result.data.username;
+        role.textContent = result.data.role;
+
+        if (result.data.role === 'superadmin') {
+            const link = `<a class="nav-link" aria-current="page" href="/carrental/frontend/auth/promote-user.html">Create Admin</a>`
+            navItems.insertAdjacentHTML('afterbegin', link);
+        }
+
         email.textContent = 'Email: ' + result.data.email;
         date.textContent = 'Date Join: ' + new Date(result.data.created_at).toLocaleDateString();
         profilePhoto.src = result.data.profile_photo;
